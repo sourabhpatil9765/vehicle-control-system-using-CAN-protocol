@@ -1,0 +1,671 @@
+#include<pic.h> 
+#define vib RB0 
+#define ir RB1 
+#define sw1 RB2 
+#define sw2 RB3 
+ 
+unsigned char a[20],j,t,temp,chk,tem; 
+unsigned char v,i,s1,s2,l1,l2; 
+ 
+void send(); 
+ 
+void interrupt serial() 
+{ 
+ if(RCIF==1) 
+ { 
+  a[j]=RCREG; 
+  if(a[0]=='*'){j++;} 
+  else j=0; 
+  RCIF=0;   
+ } 
+} 
+void main() 
+{ TRISB=0X0F; 
+ TRISC=0X80; 
+ TRISD=0X00; 
+
+ 
+ Lcd8_Init();  
+  
+ Lcd8_Display(0x80,"                    ",20); 
+ Lcd8_Display(0xc0,"   CAN CONTROLLER   ",20); 
+ Lcd8_Display(0x94,"  PROJECT  2018-19  ",20); 
+ Lcd8_Display(0xd4,"                    ",20); 
+ Delay(65000);Delay(65000);Delay(65000);Delay(65000); 
+ Lcd8_Command(0x01); 
+ 
+ Serial_Init(9600); 
+ Receive(1); 
+ 
+ Lcd8_Display(0x80,"TEMP:    VIB:       ",20); 
+ Lcd8_Display(0xc0,"IR:     OBCL:       ",20); 
+ Lcd8_Display(0x94,"SW1:      SW2:      ",20); 
+ Lcd8_Display(0xd4,"ULDR:     DLDR:     ",20); 
+ 
+ 
+ 
+ 
+ while(1) 
+ { 
+  chk++; 
+  if(chk>5){send();chk=0;} 
+
+ 
+  t=Adc8_Cha(0); 
+  float(temp)= (5.0 * t * 100.0) / 255; 
+  tem=temp; 
+  Lcd8_Decimal3(0x85,tem); 
+ 
+  if(!vib) 
+  { 
+   Lcd8_Display(0x8d,"NORMAL",6); 
+   v=0; 
+  } 
+ 
+  else if(vib) 
+  { 
+   Lcd8_Display(0x8d,"DETECT",6); 
+   v=1; 
+  } 
+ 
+  if(!ir) 
+  { 
+   Lcd8_Display(0xc3,"NDET",4); 
+   Lcd8_Display(0xcd,"NORMAL",6); 
+   i=0; 
+  } 
+ 
+  else if(ir) 
+  { 
+   Lcd8_Display(0xc3,"DETD",4); 
+   Lcd8_Display(0xcd,"DETECT",6); 
+   i=1; 
+  } 
+ 
+  if(!sw1) 
+  { 
+   Lcd8_Display(0x98,"OFF",3); 
+   s1=0; 
+  } 
+ 
+  else if(sw1) 
+  { 
+   Lcd8_Display(0x98,"ON ",3); 
+   s1=1; 
+  } 
+ 
+  if(!sw2) 
+  { 
+   Lcd8_Display(0xa2,"OFF",3); 
+   s2=0; 
+  } 
+ 
+  else if(sw2) 
+  { 
+   Lcd8_Display(0xa2,"ON ",3); 
+   s2=1; 
+  } 
+ 
+  if(j>2) 
+  { 
+   l1=(a[1]-0x30)*1; 
+   l2=(a[2]-0x30)*1; 
+ 
+   if(l1==0) 
+   { 
+    Lcd8_Display(0xd9,"NDET",4); 
+   } 
+ 
+   else if(l1==1) 
+   { 
+    Lcd8_Display(0xd9,"DETD",4); 
+   } 
+ 
+   if(l2==0) 
+   { 
+    Lcd8_Display(0xe3,"NDET",4); 
+   } 
+
+ 
+   else if(l2==1) 
+   { 
+    Lcd8_Display(0xe3,"DETD",4); 
+   } 
+ 
+   j=0; 
+  }    
+ } 
+} 
+ 
+void send() 
+{ 
+ Serial_Out(tem%1000/100+0x30); 
+ Serial_Out(tem%100/10+0x30); 
+ Serial_Out(tem%10+0x30);  
+ Serial_Out(v%10+0x30); 
+ Serial_Out(i%10+0x30); 
+ Serial_Out(s1%10+0x30); 
+ Serial_Out(s2%10+0x30);  
+ Delay(20000); 
+ 
+} 
+ 
+ 
+
+ 
+Adc8_Cha(unsigned char); 
+Adc10_Cha(unsigned char); 
+ 
+unsigned int adc_hbit,adc_lbit; 
+unsigned int adc_temp,adc_temp0,adc_val1; 
+unsigned char adc_val,adc_del,adc_j; 
+ 
+Adc8_Cha(unsigned char val) 
+{ 
+ ADFM=0; 
+ adc_del=25; 
+ 
+ if(val==0) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+  ADCON0=0x00; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x05;                 
+   while(ADCON0!=0X01); 
+      adc_temp=ADRESH; 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==1) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x08; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x0d;                 
+   while(ADCON0!=0X09); 
+      adc_temp=ADRESH; 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==2) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x10; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x15;                
+   while(ADCON0!=0x11); 
+      adc_temp=ADRESH; 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==3) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x18; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x1d;                
+   while(ADCON0!=0x19); 
+      adc_temp=ADRESH; 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==4) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x20; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x25;                
+   while(ADCON0!=0x21); 
+      adc_temp=ADRESH; 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==5) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x28; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x2d;                 
+   while(ADCON0!=0x29); 
+      adc_temp=ADRESH; 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==6) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x30; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x35;                
+   while(ADCON0!=0x31); 
+      adc_temp=ADRESH; 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==7) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x38; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x3d;                 
+   while(ADCON0!=0x39); 
+      adc_temp=ADRESH; 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ adc_val=adc_temp0/10; 
+ return adc_val; 
+} 
+ 
+ 
+Adc10_Cha(unsigned char val) 
+{ 
+ ADFM=1; 
+ adc_del=25; 
+ 
+ if(val==0) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x00; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x05;                 
+   while(ADCON0!=0X01); 
+      adc_hbit=ADRESH; 
+      adc_lbit=ADRESL; 
+   adc_temp = adc_lbit + (256*adc_hbit); 
+   adc_temp0=adc_temp0+adc_temp; 
+  } 
+ } 
+ else if(val==1) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x08; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x0d;                 
+   while(ADCON0!=0X09); 
+      adc_hbit=ADRESH; 
+      adc_lbit=ADRESL; 
+   adc_temp = adc_lbit + (256*adc_hbit); 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==2) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x10; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x15;                
+   while(ADCON0!=0x11); 
+      adc_hbit=ADRESH; 
+      adc_lbit=ADRESL; 
+   adc_temp = adc_lbit + (256*adc_hbit); 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==3) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x18; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x1d;                
+   while(ADCON0!=0x19); 
+      adc_hbit=ADRESH; 
+      adc_lbit=ADRESL; 
+   adc_temp = adc_lbit + (256*adc_hbit); 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==4) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x20; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x25;                
+   while(ADCON0!=0x21); 
+      adc_hbit=ADRESH; 
+      adc_lbit=ADRESL; 
+   adc_temp = adc_lbit + (256*adc_hbit); 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==5) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x28; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x2d;                 
+   while(ADCON0!=0x29); 
+      adc_hbit=ADRESH; 
+      adc_lbit=ADRESL; 
+   adc_temp = adc_lbit + (256*adc_hbit); 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==6) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x30; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x35;                
+   while(ADCON0!=0x31); 
+      adc_hbit=ADRESH; 
+      adc_lbit=ADRESL; 
+   adc_temp = adc_lbit + (256*adc_hbit); 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ else if(val==7) 
+ { 
+  adc_temp0=0; 
+  for(adc_j=0;adc_j<10;adc_j++) 
+  { 
+   ADCON0=0x38; 
+      ADON=1; 
+      while(adc_del--); 
+      ADCON0 =0x3d;                 
+   while(ADCON0!=0x39); 
+      adc_hbit=ADRESH; 
+      adc_lbit=ADRESL; 
+   adc_temp = adc_lbit + (256*adc_hbit); 
+   adc_temp0=adc_temp0+adc_temp;  
+  } 
+ } 
+ 
+ adc_val1=adc_temp0/10; 
+ return adc_val1; 
+} 
+ 
+ 
+#define First_Line 0x80 
+#define Second_Line 0xc0 
+#define Curser_On  0x0f 
+#define Curser_Off 0x0c 
+#define Clear_Display 0x01 
+#define Data_Port PORTD 
+
+ 
+static bit   Lcd_rs  @((unsigned) &PORTC*8+4);  
+static bit   Lcd_en  @((unsigned) &PORTC*8+5); 
+ 
+void Lcd8_Init(); 
+void Lcd8_Command(unsigned char); 
+void Lcd8_Write(unsigned char,unsigned char); 
+void Lcd8_Display(unsigned char,const unsigned char*,unsigned char); 
+void Lcd8_Decimal2(unsigned char,unsigned char); 
+void Lcd8_Decimal3(unsigned char,unsigned int); 
+void Lcd8_Decimal3c(unsigned char,unsigned int); 
+void Lcd8_Decimal3f(unsigned char,unsigned int); 
+void Lcd8_Decimal4(unsigned char,unsigned int); 
+void Lcd8_Decimal5(unsigned char,unsigned long int); 
+void Delay(unsigned int); 
+ 
+void Lcd8_Init() 
+{ 
+ Lcd8_Command(0x38);  //to select function set 
+ Lcd8_Command(0x06);   
+ Lcd8_Command(0x0c);   
+ Lcd8_Command(0x01);   
+} 
+ 
+void Lcd8_Command(unsigned char com) 
+{ 
+ Data_Port=com; 
+ Lcd_en=1; 
+ Lcd_rs=0; 
+ Delay(125); 
+ Lcd_en=0; 
+ Delay(125); 
+} 
+ 
+void Lcd8_Write(unsigned char com,unsigned char lr) 
+{ 
+ Lcd8_Command(com); 
+ 
+ Data_Port=lr;     
+ Lcd_en=1; 
+ Lcd_rs=1; 
+ Delay(125); 
+ Lcd_en=0; 
+ Delay(125);} 
+ 
+void Lcd8_Display(unsigned char com,const unsigned char *word,unsigned char n) 
+{ 
+ unsigned char Lcd_i; 
+ 
+ for(Lcd_i=0;Lcd_i<n;Lcd_i++) 
+ {  
+  Lcd8_Write(com+Lcd_i,word[Lcd_i]); 
+   } 
+} 
+  
+void Lcd8_Decimal2(unsigned char com,unsigned char val) 
+{ 
+ unsigned int Lcd_hr,Lcd_t,Lcd_o; 
+ 
+ Lcd_hr=val%100; 
+ Lcd_t=Lcd_hr/10; 
+ Lcd_o=Lcd_hr%10; 
+  
+ Lcd8_Write(com,Lcd_t+0x30); 
+ Lcd8_Write(com+1,Lcd_o+0x30); 
+} 
+ 
+ 
+ 
+void Lcd8_Decimal3(unsigned char com,unsigned int val) 
+{ 
+ unsigned int Lcd_h,Lcd_hr,Lcd_t,Lcd_o; 
+ 
+ Lcd_h=val/100; 
+ Lcd_hr=val%100; 
+ Lcd_t=Lcd_hr/10; 
+ Lcd_o=Lcd_hr%10; 
+  
+ Lcd8_Write(com,Lcd_h+0x30); 
+ Lcd8_Write(com+1,Lcd_t+0x30); 
+ Lcd8_Write(com+2,Lcd_o+0x30); 
+} 
+void Lcd8_Decimal3f(unsigned char com,unsigned int val) 
+{ 
+ unsigned int Lcd_h,Lcd_hr,Lcd_t,Lcd_o; 
+ 
+ Lcd_h=val/100; 
+ Lcd_hr=val%100; 
+ Lcd_t=Lcd_hr/10; 
+ Lcd_o=Lcd_hr%10; 
+  
+ Lcd8_Write(com,Lcd_h+0x30); 
+ Lcd8_Write(com+1,'.'); 
+ Lcd8_Write(com+2,Lcd_t+0x30); 
+ Lcd8_Write(com+3,Lcd_o+0x30); 
+ 
+}void Lcd8_Decimal3c(unsigned char com,unsigned int val) 
+{unsigned int Lcd_h,Lcd_hr,Lcd_t,Lcd_o; 
+ 
+ Lcd_h=val/100; 
+ Lcd_hr=val%100; 
+ Lcd_t=Lcd_hr/10; 
+ Lcd_o=Lcd_hr%10; 
+  
+ Lcd8_Write(com,Lcd_h+0x30); 
+ Lcd8_Write(com+1,Lcd_t+0x30); 
+ Lcd8_Write(com+2,'.'); 
+ Lcd8_Write(com+3,Lcd_o+0x30); 
+} 
+ 
+void Lcd8_Decimal4(unsigned char com,unsigned int val)  
+{ 
+ unsigned int Lcd_th,Lcd_thr,Lcd_h,Lcd_hr,Lcd_t,Lcd_o; 
+ 
+ val = val%10000; 
+ Lcd_th=val/1000; 
+ Lcd_thr=val%1000; 
+ Lcd_h=Lcd_thr/100; 
+ Lcd_hr=Lcd_thr%100; 
+ Lcd_t=Lcd_hr/10; 
+ Lcd_o=Lcd_hr%10; 
+ 
+ Lcd8_Write(com,Lcd_th+0x30); 
+ Lcd8_Write(com+1,Lcd_h+0x30); 
+ Lcd8_Write(com+2,Lcd_t+0x30); 
+ Lcd8_Write(com+3,Lcd_o+0x30); 
+} 
+void Lcd8_Decimal5(unsigned char com,unsigned long int val)  
+{ 
+ unsigned int Lcd_th,Lcd_thr,Lcd_h,Lcd_hr,Lcd_t,Lcd_o,a,b; 
+ 
+ //val = val%10000; 
+ Lcd_th=val/10000; 
+ Lcd_thr=val%10000; 
+ Lcd_h=Lcd_thr/1000; 
+ Lcd_hr=Lcd_thr%1000; 
+ Lcd_t=Lcd_hr/100; 
+ Lcd_o=Lcd_hr%100; 
+            a=Lcd_o/10; 
+            b=Lcd_o%10;  
+ 
+ Lcd8_Write(com,Lcd_th+0x30); 
+ Lcd8_Write(com+1,Lcd_h+0x30); 
+ Lcd8_Write(com+2,Lcd_t+0x30); 
+ Lcd8_Write(com+3,a+0x30); 
+        Lcd8_Write(com+4,b+0x30); 
+} 
+ 
+void Delay(unsigned int del) 
+{ 
+ while(del--); 
+}      
+ 
+ 
+void Serial_Init(unsigned long int); 
+void Serial_Out(unsigned char); 
+void Serial_Conout(const unsigned char *,unsigned char); 
+void Baudrate(unsigned long int); 
+void Receive(unsigned char); 
+ 
+void Serial_Init(unsigned long int baud) 
+{   
+ Baudrate(baud); 
+ SYNC = 0;        
+ SPEN = 1;        
+ TXEN = 1;   
+ GIE=1; 
+ PEIE=1; 
+ RCIE = 0;     
+ CREN = 0;    
+} 
+ 
+void Serial_Out(unsigned char val) 
+{ 
+ TXREG =val; 
+ while(!TXIF); 
+ TXIF = 0; 
+} 
+ 
+ 
+void Serial_Conout(const unsigned char *data,unsigned char n) 
+{ 
+ unsigned char ser_j; 
+ for(ser_j=0;ser_j<n;ser_j++) 
+ { 
+  Serial_Out(data[ser_j]); 
+ } 
+} 
+ 
+ 
+ 
+ 
+void Baudrate(unsigned long int baud) 
+{ 
+ if(baud==110)     
+ { 
+  SPBRG = 141;           
+  BRGH = 0;          
+ } 
+ else if(baud==1200)    
+ { 
+  SPBRG = 51;           
+  BRGH = 0;     
+ } 
+ else if(baud==2400) 
+ { 
+  SPBRG = 25;           
+  BRGH = 0;          
+ } 
+ else if(baud==4800) 
+ { 
+  SPBRG = 12;           
+  BRGH = 0;     
+ } 
+ else if(baud==9600) 
+ { 
+  SPBRG = 25;           
+  BRGH = 1;          
+ } 
+ else if(baud==57600) 
+ { 
+  SPBRG = 20;           
+  BRGH = 1;          
+ } 
+ else if(baud==115200) 
+ { 
+  SPBRG = 10;           
+  BRGH = 1;          
+ }  
+} 
+void Receive(unsigned char rece) 
+{ 
+ if(rece==1) 
+ { 
+  RCIE = 1;     
+  CREN = 1;         
+ } 
+ else 
+ { 
+  RCIE = 0;     
+  CREN = 0;} } 
